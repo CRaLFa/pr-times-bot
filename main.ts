@@ -25,7 +25,7 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     // await kv.delete(KV_KEY);
     const lastPublished = (await kv.get<number>(KV_KEY)).value ?? 0;
     const newAiFeeds = feed.entries.filter((entry) => lastPublished < Date.parse(entry.publishedRaw!) && /\W(AI|ＡＩ)\W/.test(entry.title?.value!));
-    if (newAiFeeds.length === 0)
+    if (newAiFeeds.length < 1)
       return;
     for (const entry of newAiFeeds) {
       const published = new Date(entry.publishedRaw!).toLocaleString();
@@ -46,7 +46,7 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     const channels = await bot.helpers.getChannels(guildId);
     const channelId = channels.find((channel) => channel.type === ChannelTypes.GuildText && channel.name === '一般')!.id;
     // return processRss(channelId);
-    Deno.cron('PR-TIMES-RSS', { minute: { every: 5 } }, () => processRss(channelId));
+    return Deno.cron('PR-TIMES-RSS', { minute: { every: 5 } }, () => processRss(channelId));
   });
 
 })();
