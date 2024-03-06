@@ -25,8 +25,10 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     // await kv.delete(KV_KEY);
     const lastPublished = (await kv.get<number>(KV_KEY)).value ?? 0;
     const newAiFeeds = feed.entries.filter((entry) => lastPublished < Date.parse(entry.publishedRaw!) && /\W(AI|ＡＩ)\W/.test(entry.title?.value!));
-    if (newAiFeeds.length < 1)
+    if (newAiFeeds.length < 1) {
+      console.log('No new feed about AI');
       return;
+    }
     for (const entry of newAiFeeds) {
       const published = new Date(entry.publishedRaw!).toLocaleString();
       await bot.helpers.sendMessage(channelId, {
