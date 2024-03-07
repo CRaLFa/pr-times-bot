@@ -14,6 +14,12 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     intents: Intents.Guilds | Intents.GuildMessages,
   });
 
+  const getTextChannelIds = async (guildIds: bigint[]) => {
+    const channelCollections = await Promise.all(guildIds.map((guildId) => bot.helpers.getChannels(guildId)));
+    const channels = channelCollections.flatMap((collection) => [...collection.values()]);
+    return channels.filter((chan) => chan.type === ChannelTypes.GuildText && chan.name === '一般').map((chan) => chan.id);
+  };
+
   const fetchRss = async () => {
     const response = await fetch(RSS_URL);
     const xml = await response.text();
@@ -47,9 +53,7 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     };
     startBot(bot);
   }).then(async (guildIds) => {
-    const channelCollections = await Promise.all(guildIds.map((guildId) => bot.helpers.getChannels(guildId)));
-    const channels = channelCollections.flatMap((collection) => [...collection.values()]);
-    const channelIds = channels.filter((chan) => chan.type === ChannelTypes.GuildText && chan.name === '一般').map((chan) => chan.id);
+    const channelIds = await getTextChannelIds(guildIds);
     // return processRss(channelIds);
     return Deno.cron('PR-TIMES-RSS', { minute: { every: 5 } }, () => processRss(channelIds));
   });
