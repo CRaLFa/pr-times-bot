@@ -55,7 +55,7 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
   }).then(async (guildIds) => {
     const channelIds = await getTextChannelIds(guildIds);
     // return processRss(channelIds);
-    return Deno.cron('PR-TIMES-RSS', { minute: { exact: [16, 46] } }, () => processRss(channelIds));
+    return Deno.cron('PR-TIMES-RSS', { minute: { exact: [16, 18, 20, 46, 48, 50] } }, () => processRss(channelIds));
   });
 
 })();
