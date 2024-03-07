@@ -20,7 +20,7 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     return parseFeed(xml);
   };
 
-  const processRss = async (channelId: bigint) => {
+  const processRss = async (channelIds: bigint[]) => {
     const feed = await fetchRss();
     // await kv.delete(KV_KEY);
     const lastPublished = (await kv.get<number>(KV_KEY)).value ?? 0;
@@ -31,24 +31,27 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     }
     for (const entry of newAiFeeds) {
       const published = new Date(entry.publishedRaw!).toLocaleString();
-      await bot.helpers.sendMessage(channelId, {
-        content: `${entry.title?.value} (${published})\n${entry.links[0].href}`,
-      });
+      for (const channelId of channelIds) {
+        await bot.helpers.sendMessage(channelId, {
+          content: `${entry.title?.value} (${published})\n${entry.links[0].href}`,
+        });
+      }
     }
     await kv.set(KV_KEY, Date.parse(feed.publishedRaw!));
   };
 
-  new Promise<bigint>((resolve) => {
+  new Promise<bigint[]>((resolve) => {
     bot.events.ready = (_, payload) => {
       console.log(`Logged in as ${payload.user.username}`);
-      resolve(payload.guilds[0]);
+      resolve(payload.guilds);
     };
     startBot(bot);
-  }).then(async (guildId) => {
-    const channels = await bot.helpers.getChannels(guildId);
-    const channelId = channels.find((channel) => channel.type === ChannelTypes.GuildText && channel.name === '一般')!.id;
-    // return processRss(channelId);
-    return Deno.cron('PR-TIMES-RSS', { minute: { every: 5 } }, () => processRss(channelId));
+  }).then(async (guildIds) => {
+    const channelCollections = await Promise.all(guildIds.map((guildId) => bot.helpers.getChannels(guildId)));
+    const channels = channelCollections.flatMap((collection) => [...collection.values()]);
+    const channelIds = channels.filter((chan) => chan.type === ChannelTypes.GuildText && chan.name === '一般').map((chan) => chan.id);
+    // return processRss(channelIds);
+    return Deno.cron('PR-TIMES-RSS', { minute: { every: 5 } }, () => processRss(channelIds));
   });
 
 })();
