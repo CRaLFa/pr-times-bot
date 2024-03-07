@@ -30,7 +30,7 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     const feed = await fetchRss();
     // await kv.delete(KV_KEY);
     const lastPublished = (await kv.get<number>(KV_KEY)).value ?? 0;
-    const newAiEntries = feed.entries.filter((entry) => lastPublished < Date.parse(entry.publishedRaw!) && /\W(AI|ＡＩ)\W/.test(entry.title?.value!));
+    const newAiEntries = feed.entries.filter((entry) => lastPublished < Date.parse(entry.publishedRaw!) && /(^|\W)(AI|ＡＩ)\W/.test(entry.title?.value!));
     if (newAiEntries.length < 1) {
       console.log('No new entry about AI');
       return;
