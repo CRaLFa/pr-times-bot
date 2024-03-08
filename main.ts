@@ -36,12 +36,9 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
       return;
     }
     for (const entry of newAiEntries) {
-      const published = new Date(entry.publishedRaw!).toLocaleString();
-      for (const channelId of channelIds) {
-        await bot.helpers.sendMessage(channelId, {
-          content: `${entry.title?.value} (${published})\n${entry.links[0].href}`,
-        });
-      }
+      const content = `${entry.title?.value} (${new Date(entry.publishedRaw!).toLocaleString()})\n${entry.links[0].href}`;
+      for (const channelId of channelIds)
+        await bot.helpers.sendMessage(channelId, { content });
     }
     await kv.set(KV_KEY, Date.parse(feed.publishedRaw!));
   };
