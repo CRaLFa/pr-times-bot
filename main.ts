@@ -26,7 +26,7 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
       if (!response.ok)
         throw new Error(`${response.status} ${response.statusText}`);
       const xml = await response.text();
-      return parseFeed(xml);
+      return await parseFeed(xml);
     } catch (err) {
       console.error(err);
       return null;
@@ -61,8 +61,8 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     startBot(bot);
   }).then(async (guildIds) => {
     const channelIds = await getTextChannelIds(guildIds);
-    // return processRss(channelIds);
-    return Deno.cron('PR-TIMES-RSS', { minute: { exact: [16, 18, 20, 46, 48, 50] } }, () => processRss(channelIds));
+    // await processRss(channelIds);
+    await Deno.cron('PR-TIMES-RSS', { minute: { exact: [16, 18, 20, 46, 48, 50] } }, () => processRss(channelIds));
   });
 
 })();
