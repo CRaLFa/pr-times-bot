@@ -21,13 +21,22 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
   };
 
   const fetchRss = async () => {
-    const response = await fetch(RSS_URL);
-    const xml = await response.text();
-    return parseFeed(xml);
+    try {
+      const response = await fetch(RSS_URL);
+      if (!response.ok)
+        throw new Error(`${response.status} ${response.statusText}`);
+      const xml = await response.text();
+      return parseFeed(xml);
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
   };
 
   const processRss = async (channelIds: bigint[]) => {
     const feed = await fetchRss();
+    if (!feed)
+      return;
     // await kv.delete(KV_KEY);
     const lastPublished = (await kv.get<number>(KV_KEY)).value ?? 0;
     const newAiEntries = feed.entries.filter((entry) => lastPublished < Date.parse(entry.publishedRaw!) && /(^|\W)(AI|ＡＩ)\W/.test(entry.title?.value!));
@@ -35,6 +44,7 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
       console.log('No new entry about AI');
       return;
     }
+    console.log(JSON.stringify(newAiEntries));
     for (const entry of newAiEntries) {
       const content = `${entry.title?.value} (${new Date(entry.publishedRaw!).toLocaleString()})\n${entry.links[0].href}`;
       for (const channelId of channelIds)
