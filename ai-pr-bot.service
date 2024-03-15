@@ -2,14 +2,11 @@
 Description=Discord bot to notify press releases about AI
 After=network.target
 
-[Install]
-WantedBy=multi-user.target
-
 [Service]
 Type=simple
 User=rana
 Group=rana
 WorkingDirectory=/home/rana/ai-pr-bot
 ExecStart=/home/rana/.deno/bin/deno run -A --unstable-kv ./main.ts
-Restart=always
+Restart=no
 KillMode=process
