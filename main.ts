@@ -60,8 +60,13 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     };
     startBot(bot);
   }).then(async (guildIds) => {
-    const channelIds = await getTextChannelIds(guildIds);
-    await processRss(channelIds);
+    try {
+      const channelIds = await getTextChannelIds(guildIds);
+      await processRss(channelIds);
+    } catch (err) {
+      console.error(err);
+      Deno.exit(1);
+    }
     Deno.exit(0);
   });
 
