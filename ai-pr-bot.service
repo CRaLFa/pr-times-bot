@@ -1,5 +1,5 @@
 [Unit]
-Description=Discord bot to notify press releases about AI
+Description=Discord bot for notifying press releases about AI
 After=network.target
 
 [Service]
