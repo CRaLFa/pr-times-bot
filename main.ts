@@ -53,21 +53,20 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     await kv.set(KV_KEY, Date.parse(feed.publishedRaw!));
   };
 
-  new Promise<bigint[]>((resolve) => {
+  new Promise<bigint[]>((resolve, reject) => {
     bot.events.ready = (_, payload) => {
       console.log(`Logged in as ${payload.user.username}`);
       resolve(payload.guilds);
     };
+    setTimeout(reject, 15000);
     startBot(bot);
   }).then(async (guildIds) => {
-    try {
-      const channelIds = await getTextChannelIds(guildIds);
-      await processRss(channelIds);
-    } catch (err) {
-      console.error(err);
-      Deno.exit(1);
-    }
+    const channelIds = await getTextChannelIds(guildIds);
+    await processRss(channelIds);
     Deno.exit(0);
+  }).catch((err) => {
+    console.error(err);
+    Deno.exit(1);
   });
 
 })();
