@@ -22,7 +22,9 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
 
   const fetchRss = async () => {
     try {
-      const response = await fetch(RSS_URL);
+      const response = await fetch(RSS_URL, {
+        signal: AbortSignal.timeout(15000),
+      });
       if (!response.ok)
         throw new Error(`${response.status} ${response.statusText}`);
       const xml = await response.text();
@@ -53,12 +55,11 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     await kv.set(KV_KEY, Date.parse(feed.publishedRaw!));
   };
 
-  new Promise<bigint[]>((resolve, reject) => {
+  new Promise<bigint[]>((resolve) => {
     bot.events.ready = (_, payload) => {
       console.log(`Logged in as ${payload.user.username}`);
       resolve(payload.guilds);
     };
-    setTimeout(reject, 15000);
     startBot(bot);
   }).then(async (guildIds) => {
     const channelIds = await getTextChannelIds(guildIds);
