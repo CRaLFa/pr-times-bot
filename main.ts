@@ -1,5 +1,7 @@
 import '@std/dotenv/load';
-import { ChannelTypes, createBot, Intents, startBot } from 'https://deno.land/x/discordeno@18.0.1/mod.ts';
+import { basename } from '@std/path';
+import { ChannelTypes, createBot, FileContent, Intents, startBot } from 'https://deno.land/x/discordeno@18.0.1/mod.ts';
+import { searchPressRelease } from './pr_times.ts';
 
 const TOKEN_ENV_KEY = 'BOT_TOKEN';
 const KV_KEY = ['prtimes', 'lastTime'];
@@ -23,10 +25,49 @@ const KV_KEY = ['prtimes', 'lastTime'];
       .map((chan) => chan.id);
   };
 
+  const getFileContent = async (url: string): Promise<FileContent | undefined> => {
+    if (!url) {
+      return undefined;
+    }
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) {
+      return undefined;
+    }
+    return {
+      blob: await res.blob(),
+      name: basename(url),
+    };
+  };
+
   const main = async (channelIds: bigint[]) => {
     const kv = await Deno.openKv();
     // await kv.delete(KV_KEY);
-    // const lastTime = (await kv.get<number>(KV_KEY)).value ?? 0;
+    const lastTime = (await kv.get<number>(KV_KEY)).value ?? 0;
+    const searchWords = (await Deno.readTextFile('./search_words.txt')).trim().replaceAll(/\r*\n/g, '|');
+    const release = await searchPressRelease(lastTime, new RegExp(searchWords));
+    if (release.latestEntryTime > 0) {
+      await kv.set(KV_KEY, release.latestEntryTime);
+    }
+    if (release.entries.length < 1) {
+      console.log('No matching entry');
+      return;
+    }
+    console.log(JSON.stringify(release));
+    for (const entry of release.entries) {
+      const content = `【${entry.companyName}】${entry.title} (${entry.time})\n${entry.pageUrl}`;
+      const file = await getFileContent(entry.imageUrl).catch((err) => {
+        console.error(err);
+        return undefined;
+      });
+      for (const channelId of channelIds) {
+        await bot.helpers.sendMessage(channelId, {
+          content,
+          file,
+        }).catch((err) => console.error(err));
+      }
+    }
   };
 
   new Promise<bigint[]>((resolve) => {
