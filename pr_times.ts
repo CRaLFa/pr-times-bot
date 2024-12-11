@@ -40,7 +40,7 @@ type PressRelease = {
 };
 
 const BASE_URL = 'https://prtimes.jp';
-const SEARCH_URL = `${BASE_URL}/api/search_release.php?callback=addReleaseList&type=searchcorpcate&v=001`;
+const SEARCH_URL = `${BASE_URL}/api/search_release.php?callback=addReleaseList&type=searchcorpcate&v=001&limit=40`;
 
 const getNumYmdhm = (timeISO8601: string) => {
   const d = new Date(timeISO8601);
@@ -62,12 +62,14 @@ const searchPressRelease = async (lastTime: number, searchCond: RegExp) => {
   let page = 1;
   try {
     while (true) {
-      const res = await fetch(`${SEARCH_URL}&page=${1}&limit=40`);
+      const res = await fetch(`${SEARCH_URL}&page=${page}`, {
+        signal: AbortSignal.timeout(15000),
+      });
       if (!res.ok) {
         return release;
       }
       const body = await res.text();
-      const sr: SearchResult = JSON.parse(body.replaceAll(/^addReleaseList\((.+)\)$/g, '$1'));
+      const sr: SearchResult = JSON.parse(body.replace(/^addReleaseList\((.+)\)$/, '$1'));
       if (sr.articles.length < 1) {
         return release;
       }
