@@ -1,3 +1,6 @@
+const BASE_URL = 'https://prtimes.jp';
+const SEARCH_URL = `${BASE_URL}/api/search_release.php?callback=addReleaseList&type=searchcorpcate&v=001&limit=40`;
+
 type SearchResult = {
   articles: {
     id: number;
@@ -38,9 +41,6 @@ type PressRelease = {
   latestEntryTime: number;
   entries: Entry[];
 };
-
-const BASE_URL = 'https://prtimes.jp';
-const SEARCH_URL = `${BASE_URL}/api/search_release.php?callback=addReleaseList&type=searchcorpcate&v=001&limit=40`;
 
 const getNumYmdhm = (timeISO8601: string) => {
   const d = new Date(timeISO8601);
