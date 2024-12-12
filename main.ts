@@ -1,6 +1,5 @@
 import '@std/dotenv/load';
-import { basename } from '@std/path';
-import { ChannelTypes, createBot, FileContent, Intents, startBot } from 'https://deno.land/x/discordeno@18.0.1/mod.ts';
+import { ChannelTypes, createBot, Intents, startBot } from 'https://deno.land/x/discordeno@18.0.1/mod.ts';
 import { searchPressRelease } from './pr_times.ts';
 
 const TOKEN_ENV_KEY = 'BOT_TOKEN';
@@ -25,21 +24,21 @@ const KV_KEY = ['prtimes', 'lastTime'];
       .map((chan) => chan.id);
   };
 
-  const getFileContent = async (url: string): Promise<FileContent | undefined> => {
-    if (!url) {
-      return undefined;
-    }
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!res.ok) {
-      return undefined;
-    }
-    return {
-      blob: await res.blob(),
-      name: basename(url),
-    };
-  };
+  // const getFileContent = async (url: string): Promise<FileContent | undefined> => {
+  //   if (!url) {
+  //     return undefined;
+  //   }
+  //   const res = await fetch(url, {
+  //     signal: AbortSignal.timeout(15000),
+  //   });
+  //   if (!res.ok) {
+  //     return undefined;
+  //   }
+  //   return {
+  //     blob: await res.blob(),
+  //     name: basename(url),
+  //   };
+  // };
 
   const main = async (channelIds: bigint[]) => {
     const kv = await Deno.openKv();
@@ -57,14 +56,14 @@ const KV_KEY = ['prtimes', 'lastTime'];
     console.log(JSON.stringify(release));
     for (const entry of release.entries) {
       const content = `【${entry.companyName}】${entry.title} (${entry.time})\n${entry.pageUrl}`;
-      const file = await getFileContent(entry.imageUrl).catch((err) => {
-        console.error(err);
-        return undefined;
-      });
+      // const file = await getFileContent(entry.imageUrl).catch((err) => {
+      //   console.error(err);
+      //   return undefined;
+      // });
       for (const channelId of channelIds) {
         await bot.helpers.sendMessage(channelId, {
           content,
-          file,
+          // file,
         }).catch((err) => console.error(err));
       }
     }
