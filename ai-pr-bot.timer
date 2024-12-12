@@ -1,9 +1,0 @@
-[Unit]
-Description=Run ai-pr-bot
-
-[Timer]
-OnCalendar=*-*-* *:16,46:00
-Persistent=true
-
-[Install]
-WantedBy=timers.target

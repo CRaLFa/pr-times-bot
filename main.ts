@@ -1,58 +1,72 @@
-import 'https://deno.land/std@0.218.2/dotenv/load.ts';
-import { createBot, startBot, Intents, ChannelTypes } from 'https://deno.land/x/discordeno@18.0.1/mod.ts';
-import { parseFeed } from 'https://deno.land/x/rss@1.0.1/mod.ts';
+import '@std/dotenv/load';
+import { ChannelTypes, createBot, Intents, startBot } from 'https://deno.land/x/discordeno@18.0.1/mod.ts';
+import { searchPressRelease } from './pr_times.ts';
 
-const RSS_URL = 'https://prtimes.jp/index.rdf';
-const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
+const TOKEN_ENV_KEY = 'BOT_TOKEN';
+const KV_KEY = ['prtimes', 'lastTime'];
 
-(async () => {
-
-  const kv = await Deno.openKv();
+(() => {
+  if (!Deno.env.has(TOKEN_ENV_KEY)) {
+    console.error(`Environment variable '${TOKEN_ENV_KEY}' is not set`);
+    Deno.exit(1);
+  }
 
   const bot = createBot({
-    token: Deno.env.get('BOT_TOKEN')!,
+    token: Deno.env.get(TOKEN_ENV_KEY)!,
     intents: Intents.Guilds | Intents.GuildMessages,
   });
 
   const getTextChannelIds = async (guildIds: bigint[]) => {
     const channelCollections = await Promise.all(guildIds.map((guildId) => bot.helpers.getChannels(guildId)));
     const channels = channelCollections.flatMap((collection) => [...collection.values()]);
-    return channels.filter((chan) => chan.type === ChannelTypes.GuildText && chan.name === '一般').map((chan) => chan.id);
+    return channels
+      .filter((chan) => chan.type === ChannelTypes.GuildText && chan.name === '一般')
+      .map((chan) => chan.id);
   };
 
-  const fetchRss = async () => {
-    try {
-      const response = await fetch(RSS_URL, {
-        signal: AbortSignal.timeout(15000),
-      });
-      if (!response.ok)
-        throw new Error(`${response.status} ${response.statusText}`);
-      const xml = await response.text();
-      return await parseFeed(xml);
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-  };
+  // const getFileContent = async (url: string): Promise<FileContent | undefined> => {
+  //   if (!url) {
+  //     return undefined;
+  //   }
+  //   const res = await fetch(url, {
+  //     signal: AbortSignal.timeout(15000),
+  //   });
+  //   if (!res.ok) {
+  //     return undefined;
+  //   }
+  //   return {
+  //     blob: await res.blob(),
+  //     name: basename(url),
+  //   };
+  // };
 
-  const processRss = async (channelIds: bigint[]) => {
-    const feed = await fetchRss();
-    if (!feed)
-      return;
+  const main = async (channelIds: bigint[]) => {
+    const kv = await Deno.openKv();
     // await kv.delete(KV_KEY);
-    const lastPublished = (await kv.get<number>(KV_KEY)).value ?? 0;
-    const newAiEntries = feed.entries.filter((entry) => lastPublished < Date.parse(entry.publishedRaw!) && /(^|\W)(AI|ＡＩ)\W/.test(entry.title?.value!));
-    if (newAiEntries.length < 1) {
-      console.log('No new entry about AI');
+    const lastTime = (await kv.get<number>(KV_KEY)).value ?? 0;
+    const searchWords = (await Deno.readTextFile('./search_words.txt')).trim().replaceAll(/\r*\n/g, '|');
+    const release = await searchPressRelease(lastTime, new RegExp(searchWords));
+    if (release.latestEntryTime > 0) {
+      await kv.set(KV_KEY, release.latestEntryTime);
+    }
+    if (release.entries.length < 1) {
+      console.log('No matching entry');
       return;
     }
-    console.log(JSON.stringify(newAiEntries));
-    for (const entry of newAiEntries) {
-      const content = `${entry.title?.value} (${new Date(entry.publishedRaw!).toLocaleString()})\n${entry.links[0].href}`;
-      for (const channelId of channelIds)
-        await bot.helpers.sendMessage(channelId, { content });
+    console.log(JSON.stringify(release));
+    for (const entry of release.entries) {
+      const content = `【${entry.companyName}】${entry.title} (${entry.time})\n${entry.pageUrl}`;
+      // const file = await getFileContent(entry.imageUrl).catch((err) => {
+      //   console.error(err);
+      //   return undefined;
+      // });
+      for (const channelId of channelIds) {
+        await bot.helpers.sendMessage(channelId, {
+          content,
+          // file,
+        }).catch((err) => console.error(err));
+      }
     }
-    await kv.set(KV_KEY, Date.parse(feed.publishedRaw!));
   };
 
   new Promise<bigint[]>((resolve) => {
@@ -63,11 +77,14 @@ const KV_KEY = ['PR-TIMES-RSS', 'AI', 'published'];
     startBot(bot);
   }).then(async (guildIds) => {
     const channelIds = await getTextChannelIds(guildIds);
-    await processRss(channelIds);
-    Deno.exit(0);
+    Deno.cron('pr-times-bot', {
+      minute: { every: 1 },
+    }, async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await main(channelIds);
+    });
   }).catch((err) => {
     console.error(err);
     Deno.exit(1);
   });
-
 })();

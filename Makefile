@@ -3,13 +3,13 @@ SYSTEMD_DIR := /etc/systemd/system
 .PHONY: install uninstall
 
 install:
-	@ install -t $(SYSTEMD_DIR) -m 644 ./ai-pr-bot.service ./ai-pr-bot.timer
+	@ install -t $(SYSTEMD_DIR) -m 644 ./pr-times-bot.service
 	@ systemctl daemon-reload
-	@ systemctl enable --now biz-alliance-bot.timer
+	@ systemctl enable --now pr-times-bot.service
 	@ echo 'Installation completed.'
 
 uninstall:
-	@ systemctl disable --now biz-alliance-bot.timer
-	@ $(RM) $(SYSTEMD_DIR)/ai-pr-bot.service $(SYSTEMD_DIR)/ai-pr-bot.timer
+	@ systemctl disable --now pr-times-bot.service
+	@ $(RM) $(SYSTEMD_DIR)/pr-times-bot.service
 	@ systemctl daemon-reload
 	@ echo 'Uninstallation completed.'
