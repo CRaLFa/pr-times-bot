@@ -80,7 +80,7 @@ const KV_KEY = ['prtimes', 'lastTime'];
     Deno.cron('pr-times-bot', {
       minute: { every: 1 },
     }, async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await new Promise((resolve) => setTimeout(resolve, 45000));
       await main(channelIds);
     });
   }).catch((err) => {
